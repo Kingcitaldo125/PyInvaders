@@ -5,29 +5,25 @@ from random import randint
 
 
 class Spaceship():
-	def __init__(self, x, y):
+	def __init__(self, x, y, direction):
 		self.x = x
 		self.y = y
-		self.width = 25
+		self.width = 35
 		self.height = 20
-		self.move_pixels = 20
-		self.image1 = None
-		self.image2 = None
-		self.flip = True
-		self.direction = randint(0,1)
-		self.direction = -1 if self.direction == 0 else 1
+		self.move_pixels = 10
+		self.image = None
+		self.direction = direction
 
 		image_folder = join('\\'.join(abspath(__file__).split('\\')[:-1]), "images/")
 
 		self.image = image.load(join(image_folder, "spaceship.png")).convert_alpha()
-		self.image = transform.scale(self.image1, (self.width, self.height))
+		self.image = transform.scale(self.image, (self.width, self.height))
 
-	def update(self, winx, winy):
-		self.flip = False if self.flip == True else True
+	def update(self):
 		self.x += self.move_pixels * self.direction
 
 	def render(self, rendertarget):
-		rendertarget.blit(self.image1, (self.x, self.y))
+		rendertarget.blit(self.image, (self.x, self.y))
 
 class Alien():
 	def __init__(self, x, y, kind_int):

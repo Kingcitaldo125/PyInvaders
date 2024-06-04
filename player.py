@@ -25,7 +25,7 @@ class Player():
 		pass
 
 	def fire(self):
-		self.bullets.append(Bullet(self.x, self.y))
+		self.bullets.append(Bullet(self.x + int(self.width // 2), self.y - 10))
 
 	def update(self):
 		for b in self.bullets:
@@ -38,8 +38,10 @@ class Player():
 		result = False
 
 		if self.x + self.width + move_speed >= winx:
+			self.x -= move_speed
 			return
 		if self.x - move_speed <= 0:
+			self.x += move_speed
 			return
 
 		self.x += move_speed * direction

@@ -130,7 +130,9 @@ def main(winx=800, winy=600):
 		if spaceship is None:
 			srn = randrange(0,100)
 			if srn == 50:
-				spaceship = Spaceship(-10, 20)
+				direction = randrange(0,2)
+				direction = -1 if direction == 0 else 1
+				spaceship = Spaceship(-10 if direction == 1 else winx + 10, 20, direction)
 
 		for e in pygame.event.get():
 			if e.type == pygame.KEYDOWN:
