@@ -21,15 +21,20 @@ class Player():
 		self.image = image.load(join(image_folder, "player.png")).convert_alpha()
 		self.image = transform.scale(self.image, (self.width, self.height))
 
-	def check_hit(self, bullet):
+	def check_hit(self, alien_bullets):
 		pass
 
 	def fire(self):
+		if len(self.bullets) > 0:
+			return
 		self.bullets.append(Bullet(self.x + int(self.width // 2), self.y - 10))
 
 	def update(self):
 		for b in self.bullets:
 			b.y -= b.velocity
+			if b.y + b.height < 0:
+				self.bullets.remove(b)
+				continue
 
 	def move(self, winx, winy, direction):
 		move_speed = 30 # pixels

@@ -128,7 +128,7 @@ def main(winx=800, winy=600):
 					spaceship = None
 
 		if spaceship is None:
-			srn = randrange(0,100)
+			srn = randrange(0,1000)
 			if srn == 50:
 				direction = randrange(0,2)
 				direction = -1 if direction == 0 else 1
