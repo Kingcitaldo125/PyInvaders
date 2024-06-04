@@ -12,8 +12,5 @@ class Bullet():
 	def check_update(self, winy):
 		return self.y <= winy
 
-	def update(self, winy):
-		self.y -= velocity
-
 	def render(self, rendertarget):
 		draw.rect(rendertarget, (255,255,255), (self.x, self.y, self.width, self.height))

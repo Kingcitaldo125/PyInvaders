@@ -29,7 +29,7 @@ class Player():
 
 	def update(self):
 		for b in self.bullets:
-			b.update()
+			b.y -= b.velocity
 
 	def move(self, winx, winy, direction):
 		move_speed = 30 # pixels
@@ -47,4 +47,7 @@ class Player():
 		return result
 
 	def render(self, rendertarget):
+		for b in self.bullets:
+			b.render(rendertarget)
+
 		rendertarget.blit(self.image, (self.x, self.y))
