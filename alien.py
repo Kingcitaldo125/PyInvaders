@@ -32,12 +32,11 @@ class Alien():
 		self.width = 25
 		self.height = 20
 		self.move_pixels = 20
-		#self.xoffset = 20
-		#self.yoffset = 10
 		self.image1 = None
 		self.image2 = None
 		self.flip = True
 		self.direction = 1
+		self.kind = kind_int
 
 		image_folder = join('\\'.join(abspath(__file__).split('\\')[:-1]), "images/")
 		kind_str1 = f"Alien{kind_int}1.png"
@@ -74,9 +73,9 @@ class Alien():
 		self.flip = False if self.flip == True else True
 		self.x += self.move_pixels * self.direction
 
-	def render(self, rendertarget):
+	def render(self, rendertarget, color=(255,255,255)):
 		if self.flip:
 			rendertarget.blit(self.image1, (self.x, self.y))
 		else:
 			rendertarget.blit(self.image2, (self.x, self.y))
-		#draw.rect(rendertarget, (255,255,255), (self.x, self.y, self. width, self.height), 1)
+		#draw.rect(rendertarget, color, (self.x, self.y, self.width, self.height), 1)
