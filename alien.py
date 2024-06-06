@@ -31,7 +31,7 @@ class Alien():
 		self.y = y
 		self.width = 25
 		self.height = 20
-		self.move_pixels = 20
+		self.move_pixels = self.width // 2
 		self.image1 = None
 		self.image2 = None
 		self.flip = True

@@ -71,6 +71,7 @@ def update_aliens_movement(winx, winy, aliens):
 				res = a.check_update(winx, winy)
 				if res != 0:
 					row_update = res
+					interval -= 0.05
 					break
 
 			if row_update == 1:
@@ -90,23 +91,37 @@ def update_player_aliens(player, aliens, dt):
 	if len(player.bullets) < 1:
 		return
 
+	for bt in player.bullets:
+		bt.y -= bt.velocity * dt
+		if bt.y < 0:
+			player.bullets.remove(bt)
+			continue
+
+	results = False
+	y_collision_offset = 5
+	
 	with glock:
 		for a in aliens:
+			acoll1 = (a.x + a.width) >= player.x and a.x <= (player.x + player.width)
+			acoll2 = (a.y + a.height) >= player.y and a.y <= (player.y + player.height)
+
+			if acoll1 and acoll2:
+				return True
+
 			if len(player.bullets) < 1:
 				continue
-			for bt in player.bullets:
-				bt.y -= bt.velocity
-				if bt.y < 0:
-					player.bullets.remove(bt)
-					continue
 
+			# Handle bullet position updates and bullet-alien collision
+			for bt in player.bullets:
 				xcoll = (bt.x + bt.width) >= a.x and bt.x <= (a.x + a.width)
-				ycoll = (bt.y + (bt.height * 2)) >= a.y and (bt.y - 1) <= (a.y + a.height)
+				ycoll = (bt.y + (bt.height * 2)) >= a.y and (bt.y - y_collision_offset) <= (a.y + a.height)
 
 				if xcoll and ycoll:
 					aliens.remove(a)
 					player.bullets.remove(bt)
 					break
+
+	return results
 
 def g_render(screen, player, spaceship, aliens, alien_bullets):
 	screen.fill(black)
@@ -136,12 +151,28 @@ def main(screen, aliens, winx, winy):
 
 	alien_updater.start()
 
-	print("started")
-
 	while not done:
 		dt = clock.tick(10)
 
-		update_player_aliens(player, aliens, dt)
+		res = update_player_aliens(player, aliens, dt)
+
+		if res:
+			print("Player Dead!")
+			print("Game Over!")
+			player.set_dead()
+			g_render(screen, player, spaceship, aliens, alien_bullets)
+			pygame.display.flip()
+			sleep(3)
+			return
+
+		if spaceship is not None:
+			for bt in player.bullets:
+				xcoll = (bt.x + bt.width) >= spaceship.x and bt.x <= (spaceship.x + a.width)
+				ycoll = (bt.y + (bt.height * 2)) >= spaceship.y and (bt.y - 1) <= (spaceship.y + a.height)
+
+				if xcoll and ycoll:
+					spaceship = None
+					player.bullets.remove(bt)
 
 		for a in aliens:
 			rn = randrange(0,1000)

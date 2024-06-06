@@ -43,7 +43,7 @@ class Player():
 	def fire(self):
 		if len(self.bullets) > 0:
 			return
-		self.bullets.append(Bullet(self.x + int(self.width // 2), self.y - 10, velocity=1))
+		self.bullets.append(Bullet(self.x + int(self.width // 2), self.y - 10))
 
 	def move(self, winx, winy, direction):
 		move_speed = 20 # pixels
