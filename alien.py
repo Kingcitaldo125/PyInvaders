@@ -10,7 +10,7 @@ class Spaceship():
 		self.y = y
 		self.width = 35
 		self.height = 20
-		self.move_pixels = 10
+		self.move_pixels = 5
 		self.image = None
 		self.direction = direction
 

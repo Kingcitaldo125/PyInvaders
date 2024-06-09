@@ -2,7 +2,7 @@ from pygame import draw
 
 
 class Bullet():
-	def __init__(self, x, y, velocity=0.5):
+	def __init__(self, x, y, velocity=0.6):
 		self.x = x
 		self.y = y
 		self.width = 2

@@ -8,6 +8,7 @@ from threading import Lock, Thread
 from alien import Alien, Spaceship
 from player import Player
 from bullet import Bullet
+from barrier import Barrier
 
 
 black = (0,0,0)
@@ -17,7 +18,20 @@ green = (50,255,0)
 done = False
 glock = Lock()
 
-def setup(winx, winy):
+def setup_barriers(winx, winy):
+	barriers = []
+	xpos = winx * 0.15
+	ypos = winy * 0.75
+	width = 75
+	height = 25
+
+	for i in range(4):
+		barriers.append(Barrier(int(xpos), int(ypos), width, height))
+		xpos += winx * 0.2
+
+	return barriers
+
+def setup_aliens(winx, winy):
 	aliens = []
 	xoffset = winx * 0.15
 	yoffset = winy * 0.15
@@ -58,6 +72,7 @@ def update_aliens_movement(winx, winy, aliens):
 		rupdate = row_update
 		with glock:
 			for a in aliens:
+				# Figure out which direction they will move
 				if rupdate == 1:
 					a.x -= (a.move_pixels)
 					a.flip_direction()
@@ -67,17 +82,20 @@ def update_aliens_movement(winx, winy, aliens):
 					a.flip_direction()
 					row_update = 0
 
+			if done:
+				break
+
 			for a in aliens:
 				res = a.check_update(winx, winy)
 				if res != 0:
 					row_update = res
+					# Make the aliens move faster
+					# after they finish strafing the current row
 					interval -= 0.05
 					break
 
-			if row_update == 1:
-				for a in aliens:
-					a.row_update()
-			elif row_update == 2:
+			# If any alien hit a wall, move the formation down a row
+			if row_update != 0:
 				for a in aliens:
 					a.row_update()
 			else:
@@ -91,6 +109,7 @@ def update_player_aliens(player, aliens, dt):
 	if len(player.bullets) < 1:
 		return
 
+	# Move the player's bullets
 	for bt in player.bullets:
 		bt.y -= bt.velocity * dt
 		if bt.y < 0:
@@ -105,6 +124,7 @@ def update_player_aliens(player, aliens, dt):
 			acoll1 = (a.x + a.width) >= player.x and a.x <= (player.x + player.width)
 			acoll2 = (a.y + a.height) >= player.y and a.y <= (player.y + player.height)
 
+			# Alien hit the player
 			if acoll1 and acoll2:
 				return True
 
@@ -123,7 +143,7 @@ def update_player_aliens(player, aliens, dt):
 
 	return results
 
-def g_render(screen, player, spaceship, aliens, alien_bullets):
+def g_render(screen, player, spaceship, aliens, barriers, alien_bullets):
 	screen.fill(black)
 
 	player.render(screen)
@@ -134,10 +154,13 @@ def g_render(screen, player, spaceship, aliens, alien_bullets):
 	for a in aliens:
 		a.render(screen)
 
+	for b in barriers:
+		b.render(screen)
+
 	for bt in alien_bullets:
 		bt.render(screen)
 
-def main(screen, aliens, winx, winy):
+def main(screen, aliens, barriers, winx, winy):
 	global done
 
 	clock = pygame.time.Clock()
@@ -152,10 +175,15 @@ def main(screen, aliens, winx, winy):
 	alien_updater.start()
 
 	while not done:
-		dt = clock.tick(10)
+		dt = clock.tick(30)
+
+		# Handle bullets hitting a barrier shard
+		for barrier in barriers:
+			barrier.check_shard_collision(player.bullets, alien_bullets)
 
 		res = update_player_aliens(player, aliens, dt)
 
+		# Alien hit the player
 		if res:
 			print("Player Dead!")
 			print("Game Over!")
@@ -193,7 +221,7 @@ def main(screen, aliens, winx, winy):
 				alien_bullets = []
 				player.set_dead()
 				player.clear_bullets()
-				g_render(screen, player, spaceship, aliens, alien_bullets)
+				g_render(screen, player, spaceship, aliens, barriers, alien_bullets)
 				pygame.display.flip()
 				sleep(3)
 				player.unset_dead()
@@ -211,7 +239,7 @@ def main(screen, aliens, winx, winy):
 
 		if spaceship is None:
 			srn = randrange(0,1000)
-			if srn == 50:
+			if srn == 50: # create the spaceship
 				direction = randrange(0,2)
 				direction = -1 if direction == 0 else 1
 				spaceship = Spaceship(-10 if direction == 1 else winx + 10, 20, direction)
@@ -228,7 +256,7 @@ def main(screen, aliens, winx, winy):
 					done = True
 					break
 
-		g_render(screen, player, spaceship, aliens, alien_bullets)
+		g_render(screen, player, spaceship, aliens, barriers, alien_bullets)
 		pygame.display.flip()
 
 if __name__ == "__main__":
@@ -238,11 +266,12 @@ if __name__ == "__main__":
 	pygame.display.init()
 	screen = pygame.display.set_mode((winx, winy))
 
-	aliens = setup(winx, winy)
+	aliens = setup_aliens(winx, winy)
+	barriers = setup_barriers(winx, winy)
 	alien_updater = Thread(target=update_aliens_movement, args=(winx, winy, aliens))
 
 	try:
-		main(screen, aliens, winx, winy)
+		main(screen, aliens, barriers, winx, winy)
 	except Exception as e:
 		print(e)
 		done = True
