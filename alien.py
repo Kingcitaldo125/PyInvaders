@@ -19,6 +19,10 @@ class Spaceship():
 		self.image = image.load(join(image_folder, "spaceship.png")).convert_alpha()
 		self.image = transform.scale(self.image, (self.width, self.height))
 
+	def get_score(self):
+		scores = [100,200,300]
+		return scores[randint(0,2)]
+
 	def update(self):
 		self.x += self.move_pixels * self.direction
 
@@ -37,6 +41,14 @@ class Alien():
 		self.flip = True
 		self.direction = 1
 		self.kind = kind_int
+		self.score = 0
+		
+		if kind_int == 1:
+			self.score = 10
+		elif kind_int == 2:
+			self.score = 20
+		elif kind_int == 3:
+			self.score = 30
 
 		image_folder = join('\\'.join(abspath(__file__).split('\\')[:-1]), "images/")
 		kind_str1 = f"Alien{kind_int}1.png"
@@ -47,6 +59,9 @@ class Alien():
 
 		self.image2 = image.load(join(image_folder, kind_str2)).convert_alpha()
 		self.image2 = transform.scale(self.image2, (self.width, self.height))
+
+	def get_score(self):
+		return self.score
 
 	def check_hit(self, bullet):
 		pass

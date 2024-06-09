@@ -10,13 +10,18 @@ from player import Player
 from bullet import Bullet
 from barrier import Barrier
 
+from fontcontroller import FontController
+from rendertext import RenderText
+
 
 black = (0,0,0)
 white = (255,255,255)
 green = (50,255,0)
 
 done = False
+interval = 1
 glock = Lock()
+
 
 def setup_barriers(winx, winy):
 	barriers = []
@@ -64,9 +69,8 @@ def setup_aliens(winx, winy):
 	return aliens
 
 def update_aliens_movement(winx, winy, aliens):
-	global done, glock
+	global done, glock, interval
 	row_update = 0
-	interval = 1
 
 	while not done:
 		rupdate = row_update
@@ -91,7 +95,7 @@ def update_aliens_movement(winx, winy, aliens):
 					row_update = res
 					# Make the aliens move faster
 					# after they finish strafing the current row
-					interval -= 0.05
+					interval = max(0.10, interval - 0.05)
 					break
 
 			# If any alien hit a wall, move the formation down a row
@@ -104,10 +108,10 @@ def update_aliens_movement(winx, winy, aliens):
 
 		sleep(interval)
 
-def update_player_aliens(player, aliens, dt):
+def update_player_aliens(player, aliens, score, dt):
 	global glock
 	if len(player.bullets) < 1:
-		return
+		return [score, False]
 
 	# Move the player's bullets
 	for bt in player.bullets:
@@ -137,11 +141,18 @@ def update_player_aliens(player, aliens, dt):
 				ycoll = (bt.y + (bt.height * 2)) >= a.y and (bt.y - y_collision_offset) <= (a.y + a.height)
 
 				if xcoll and ycoll:
+					score += a.get_score()
 					aliens.remove(a)
 					player.bullets.remove(bt)
 					break
 
-	return results
+	return [score,results]
+
+def draw_text(screen, rendertext, x, y, text):
+	rendertext.update_x(x)
+	rendertext.update_y(y)
+	rendertext.update_text(text)
+	rendertext.draw(screen)
 
 def g_render(screen, player, spaceship, aliens, barriers, alien_bullets):
 	screen.fill(black)
@@ -160,8 +171,12 @@ def g_render(screen, player, spaceship, aliens, barriers, alien_bullets):
 	for bt in alien_bullets:
 		bt.render(screen)
 
-def main(screen, aliens, barriers, winx, winy):
-	global done
+def g_render_text(screen, winx, winy, score, score_rendertext, lives, lives_rendertext):
+	draw_text(screen, score_rendertext, 50, 10, "Score: " + str(score))
+	draw_text(screen, lives_rendertext, 50, winy - 10, "Lives: " + str(lives))
+
+def main(screen, aliens, alien_updater, barriers, font_controller, winx, winy):
+	global done, white, black, interval
 
 	clock = pygame.time.Clock()
 
@@ -169,28 +184,56 @@ def main(screen, aliens, barriers, winx, winy):
 
 	alien_bullets = []
 	spaceship = None
+	
+	score = 0
+	score_rendertext = RenderText(font_controller, white, black)
 
-	row_update = 0
+	lives = 3
+	lives_rendertext = RenderText(font_controller, white, black)
+
+	game_over_rendertext = RenderText(font_controller, white, black)
+
+	alien_bullet_freq = 1500
+
+	print("Move with arrow keys; Spacebar to shoot!")
 
 	alien_updater.start()
 
 	while not done:
 		dt = clock.tick(30)
 
+		# Player shot all aliens
+		if len(aliens) == 0 and spaceship is None:
+			if alien_updater.is_alive():
+				alien_bullets = []
+				done = True
+				alien_updater.join()
+
+				aliens = setup_aliens(winx, winy)
+				interval = max(0.10, interval - 0.05)
+				alien_updater = Thread(target=update_aliens_movement, args=(winx, winy, aliens))
+
+				g_render(screen, player, spaceship, aliens, barriers, alien_bullets)
+				g_render_text(screen, winx, winy, score, score_rendertext, lives, lives_rendertext)
+
+				sleep(3)
+				done = False
+				alien_bullet_freq = max(10, alien_bullet_freq - 250)
+				alien_updater.start()
+
 		# Handle bullets hitting a barrier shard
 		for barrier in barriers:
 			barrier.check_shard_collision(player.bullets, alien_bullets)
 
-		res = update_player_aliens(player, aliens, dt)
+		score, res = update_player_aliens(player, aliens, score, dt)
 
-		# Alien hit the player
-		if res:
-			print("Player Dead!")
-			print("Game Over!")
-			player.set_dead()
-			g_render(screen, player, spaceship, aliens, alien_bullets)
+		# Alien hit the player OR Game Over
+		if res or lives < 1:
+			screen.fill(black)
+			draw_text(screen, game_over_rendertext, (winx // 2), winy // 2, "Game Over!")
 			pygame.display.flip()
 			sleep(3)
+			done = True
 			return
 
 		if spaceship is not None:
@@ -199,11 +242,12 @@ def main(screen, aliens, barriers, winx, winy):
 				ycoll = (bt.y + (bt.height * 2)) >= spaceship.y and (bt.y - 1) <= (spaceship.y + a.height)
 
 				if xcoll and ycoll:
+					score += spaceship.get_score()
 					spaceship = None
 					player.bullets.remove(bt)
 
 		for a in aliens:
-			rn = randrange(0,1000)
+			rn = randrange(0, alien_bullet_freq)
 			if rn == 123:
 				alien_bullets.append(Bullet(a.x, a.y))
 
@@ -217,14 +261,15 @@ def main(screen, aliens, barriers, winx, winy):
 			ycoll = (bt.y + bt.height) >= player.y
 
 			if xcoll and ycoll:
-				print("Player Dead!")
 				alien_bullets = []
 				player.set_dead()
 				player.clear_bullets()
 				g_render(screen, player, spaceship, aliens, barriers, alien_bullets)
+				g_render_text(screen, winx, winy, score, score_rendertext, lives, lives_rendertext)
 				pygame.display.flip()
 				sleep(3)
 				player.unset_dead()
+				lives -= 1
 
 		if spaceship is not None:
 			spaceship.update()
@@ -257,6 +302,7 @@ def main(screen, aliens, barriers, winx, winy):
 					break
 
 		g_render(screen, player, spaceship, aliens, barriers, alien_bullets)
+		g_render_text(screen, winx, winy, score, score_rendertext, lives, lives_rendertext)
 		pygame.display.flip()
 
 if __name__ == "__main__":
@@ -266,12 +312,14 @@ if __name__ == "__main__":
 	pygame.display.init()
 	screen = pygame.display.set_mode((winx, winy))
 
+	font_controller = FontController()
+
 	aliens = setup_aliens(winx, winy)
 	barriers = setup_barriers(winx, winy)
 	alien_updater = Thread(target=update_aliens_movement, args=(winx, winy, aliens))
 
 	try:
-		main(screen, aliens, barriers, winx, winy)
+		main(screen, aliens, alien_updater, barriers, font_controller, winx, winy)
 	except Exception as e:
 		print(e)
 		done = True
@@ -280,4 +328,5 @@ if __name__ == "__main__":
 	if alien_updater.is_alive():
 		alien_updater.join()
 
+	font_controller.quit()
 	pygame.display.quit()
